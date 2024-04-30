@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from src.Models.PolicyLSTM import PolicyLSTM
 
-class IRLAgent:
+class BasicIRLAgent:
     def __init__(self, env_name='PoppyTorsoEnv', input_dim=51, hidden_dim=128, output_dim=13, num_layers=2, learning_rate=0.01):
         """
         Class of an Inverse Reinforcement Learning (IRL) agent that learns the reward function from expert demonstrations.
@@ -24,7 +24,7 @@ class IRLAgent:
     def reward_function(self, predicted_coords, ground_truth_coords):
         # Calculate Euclidean distance between predicted and ground truth coordinates
         distance = torch.norm(predicted_coords - ground_truth_coords, dim=-1)
-        return -distance  # Negative to form a reward
+        return -distance.mean()  # Negative to form a reward, average over all vectors to get a single reward
 
     def train(self, num_episodes=1000):
         for episode in range(num_episodes):
@@ -33,16 +33,18 @@ class IRLAgent:
             total_reward = 0
 
             while not done:
-                state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-                action = self.policy_net(state_tensor).squeeze().detach().numpy()
+                # Policy Evaluation: Generate behavior and calculate the reward
+                state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).unsqueeze(0) # Double unsqueeze to transform into torch(1, 1, n) shape
+                action = self.policy_net(state_tensor).squeeze().detach().numpy() # Squeeze to transform into torch(n) shape, detach to remove from computation of gradient
 
-                next_state, _, done, info = self.env.step(action)
-                ground_truth_coords = info['ground_truth']  # Assuming ground truth is provided in info dict
+                next_state, reward, done, info = self.env.step(action)
+                ground_truth_coords = info.get('ground_truth')  # Assuming ground truth is provided in info dict
 
                 predicted_coords = torch.tensor(next_state, dtype=torch.float32)
                 ground_truth_coords = torch.tensor(ground_truth_coords, dtype=torch.float32)
                 reward = self.reward_function(predicted_coords, ground_truth_coords)
 
+                # Policy Improvement: Adjust the policy to increase the cumulative reward
                 self.optimizer.zero_grad()
                 loss = -reward  # Negative reward because we want to maximize reward
                 loss.backward()
