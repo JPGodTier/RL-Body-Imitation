@@ -15,29 +15,17 @@ class PoppyChannel:
                                'abs_z': 0.0,
                                'bust_x': 0.0,
                                'bust_y': 0.0,
-                               'r_elbow_y': 0.0,
+                               'r_elbow_y': 90.0,
                                'r_arm_z': 0.0,
                                'r_shoulder_x': 0.0,
                                'r_shoulder_y': 0.0,
-                               'l_elbow_y': 0.0,
+                               'l_elbow_y': 90.0,
                                'l_arm_z': 0.0,
                                'l_shoulder_x': 0.0,
                                'l_shoulder_y': 0.0,
                                }
-        self.left_motors = ['abs_z',
-                            'bust_y',
-                            'bust_x',
-                            'l_shoulder_y',
-                            'l_shoulder_x',
-                            'l_arm_z',
-                            'l_elbow_y']
-        self.right_motors = ['abs_z',
-                             'bust_y',
-                             'bust_x',
-                             'r_shoulder_y',
-                             'r_shoulder_x',
-                             'r_arm_z',
-                             'r_elbow_y']
+        self.left_motors = ['l_shoulder_x',]
+        self.right_motors = ['r_shoulder_x']
 
     def connect(self):
         self.disconnect()
@@ -47,10 +35,9 @@ class PoppyChannel:
     def disconnect(self):
         vrep.close_all_connections()
 
-    def set_poppy_position(self, positions):
+    def set_poppy_position(self, positions, timestamps):
         # TODO: temp solution for timestamps
-        timestamps = np.linspace(0.02, 3, 3 * self.__fps)
-        self.__moves.add_position(positions, timestamps[0])
+        self.__moves.add_position(positions, timestamps)
 
     def get_poppy_positions(self, arm):
         if arm == "left":
