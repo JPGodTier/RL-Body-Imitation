@@ -24,7 +24,7 @@ class PoppyChannel:
                                'l_shoulder_x': 0.0,
                                'l_shoulder_y': 0.0,
                                }
-        self.left_motors = ['l_shoulder_x',]
+        self.left_motors = ['l_shoulder_x']
         self.right_motors = ['r_shoulder_x']
 
     def connect(self):
@@ -36,7 +36,6 @@ class PoppyChannel:
         vrep.close_all_connections()
 
     def set_poppy_position(self, positions, timestamps):
-        # TODO: temp solution for timestamps
         self.__moves.add_position(positions, timestamps)
 
     def get_poppy_positions(self, arm):

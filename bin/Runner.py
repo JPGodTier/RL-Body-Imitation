@@ -1,10 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import BaseCallback
-from poppy_env import PoppyTorsoEnv
-
+from stable_baselines3.common.vec_env import DummyVecEnv
+from src.Poppy.PoppyTorsoEnv import PoppyTorsoEnv
+from stable_baselines3.common.evaluation import evaluate_policy
+from src.utils.movement_parser import *
 
 class RewardLoggerCallback(BaseCallback):
     def __init__(self, check_freq, verbose=1):
@@ -42,18 +45,44 @@ def plot_rewards(rewards, title='Training Progress'):
 
 def main():
     # Create vector of environments to run in parallel
-    env = make_vec_env(PoppyTorsoEnv, n_envs=4)
+    skeletons = torch.from_numpy(np.load("skeletons_sao.npy"))
+    topology = [0, 0, 1, 2, 0, 4, 5, 0, 7, 8, 9, 8, 11, 12, 8, 14, 15]
 
-    # Create a callback to log the rewards
-    reward_logger = RewardLoggerCallback(check_freq=1000)  # Adjust frequency based on your needs
+    targets, _ = targets_from_skeleton(skeletons, np.array(topology), 3)
+    env = PoppyTorsoEnv(targets.numpy())
 
-    # Create PPO model that will learn the optimal policy to control the Poppy Torso
-    model = PPO('CnnLstmPolicy', env, verbose=1) # using CNN (for spatial awareness) + LSTM (for temporal dynamics)
+    env = DummyVecEnv([lambda: env])
 
-    model.learn(total_timesteps=20000, callback=reward_logger)
-    model.save("poppy_torso_ppo")
-    env.close()
-    plot_rewards(reward_logger.epoch_rewards)
+    model = PPO('MlpPolicy', env, verbose=1)
+    model.learn(total_timesteps=10000)
+
+    model.save("ppo_poppy_torso")
+
+    # Reload it
+    model = PPO.load("ppo_poppy_torso", env=env)
+
+    # Evaluate the trained model
+    mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=10)
+    print(f"Mean reward: {mean_reward} +/- {std_reward}")
+
+    obs = env.reset()
+    for i in range(1000):
+        action, _states = model.predict(obs, deterministic=True)
+        obs, rewards, dones, info = env.step(action)
+        env.render()
+        if dones:
+            obs = env.reset()
+
+    # # Create a callback to log the rewards
+    # reward_logger = RewardLoggerCallback(check_freq=1000)  # Adjust frequency based on your needs
+    #
+    # # Create PPO model that will learn the optimal policy to control the Poppy Torso
+    # model = PPO('CnnLstmPolicy', env, verbose=1)  # using CNN (for spatial awareness) + LSTM (for temporal dynamics)
+    #
+    # model.learn(total_timesteps=20000, callback=reward_logger)
+    # model.save("poppy_torso_ppo")
+    # env.close()
+    # plot_rewards(reward_logger.epoch_rewards)
 
 
 if __name__ == "__main__":

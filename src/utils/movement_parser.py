@@ -1,7 +1,7 @@
 import numpy as np
 import torch
-from skeleton import forward_kinematics, find_quaternions
-from quaternion import (
+from src.utils.skeleton import forward_kinematics, find_quaternions
+from src.utils.quaternion import (
     batch_quat_left_multiply,
     batch_quat_inverse,
 )

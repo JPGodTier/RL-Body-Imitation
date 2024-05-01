@@ -1,19 +1,22 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
+import torch
 
 from src.CoppeliaComs.PoppyChannel import PoppyChannel
+from src.utils.movement_parser import *
 
 
 class PoppyTorsoEnv(gym.Env):
 
     def __init__(self, targets):
+        super().__init__()
         self.poppy_channel = PoppyChannel()
         self.poppy_channel.connect()
 
         # Targets
         self.__current_step = 0
-        self.__target_positions = targets
+        self.__target_positions = targets.numpy() if isinstance(targets, torch.Tensor) else targets
 
         # Motors
         self.left_motor_names = self.poppy_channel.left_motors
@@ -52,31 +55,39 @@ class PoppyTorsoEnv(gym.Env):
         _, l_end_effector_positions = self.poppy_channel.get_poppy_positions("left")
         _, r_end_effector_positions = self.poppy_channel.get_poppy_positions("right")
 
-        return (np.array(l_end_effector_positions),
-                np.array(r_end_effector_positions))
+        # Debug
+        print("Left positions shape:", l_end_effector_positions.shape)
+        print("Right positions shape:", r_end_effector_positions.shape)
+
+        return np.concatenate([l_end_effector_positions, r_end_effector_positions])
 
     def calculate_reward(self, state):
-        # simple test reward
-        # TODO: add target as list of points that must be reached
-        left_effector_pos, right_effector_pos = state
+        left_effector_pos = state[:3]
+        right_effector_pos = state[3:]
+
+        # Sanity check
+        left_effector_pos = np.array(left_effector_pos).flatten()
+        right_effector_pos = np.array(right_effector_pos).flatten()
+
+        # Simple reward
         distance_left = np.linalg.norm(left_effector_pos - self.__target_positions[self.__current_step, 0])
         distance_right = np.linalg.norm(right_effector_pos - self.__target_positions[self.__current_step, 1])
 
-        return -np.sum(distance_left + distance_right)
+        return -(distance_left + distance_right)
 
     def check_if_done(self, state):
         return self.__current_step == self.__target_positions.shape[0]
 
-    def poppy_default_pos(self):
+    def reset(self, **kwargs):
+        self.__current_step = 0
         self.poppy_channel.poppy_reset()
-        return self.get_state()
 
     def close(self):
         self.poppy_channel.disconnect()
 
     def test(self):
         import time
-        self.poppy_default_pos()
+        self.poppy_channel.poppy_reset()
         timestamps = np.linspace(0.02, 3, 10)
         a = {'l_shoulder_x': [20, 0.0], 'r_shoulder_x': [-20, 0.0]}
         b = {'l_shoulder_x': [40, 0.0], 'r_shoulder_x': [-40, 0.0]}
@@ -84,7 +95,7 @@ class PoppyTorsoEnv(gym.Env):
         d = {'l_shoulder_x': [90, 0.0], 'r_shoulder_x': [-90, 0.0]}
         e = {'l_shoulder_x': [110, 0.0], 'r_shoulder_x': [-110, 0.0]}
         f = {'l_shoulder_x': [130, 0.0], 'r_shoulder_x': [-130, 0.0]}
-        self.poppy_channel.set_poppy_position(a, timestamps[0])
+        self.poppy_channel.set_poppy_position(a, 0.02)
         self.poppy_channel.poppy_move()
         time.sleep(2)
         self.poppy_channel.set_poppy_position(b, timestamps[0])
@@ -111,6 +122,10 @@ class PoppyTorsoEnv(gym.Env):
         self.poppy_channel.poppy_move()
 
 
+# skeletons = torch.from_numpy(np.load("skeletons_sao.npy"))
+# topology = [0, 0, 1, 2, 0, 4, 5, 0, 7, 8, 9, 8, 11, 12, 8, 14, 15]
+#
+# targets, _ = targets_from_skeleton(skeletons, np.array(topology), 3)
 # To create an instance of the environment:
-env = PoppyTorsoEnv()
-env.test()
+# env = PoppyTorsoEnv([0])
+# env.test()
