@@ -24,7 +24,7 @@ class PoppyTorsoEnv(gym.Env):
         self.right_motor_names = self.poppy_channel.right_motors
 
         # Normalizing joint movement ranges
-        self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-10, high=10, shape=(2,), dtype=np.float32)
 
         # Assuming the robot provides joint positions and Cartesian positions for the end effectors
         self.observation_space = spaces.Box(
@@ -53,7 +53,7 @@ class PoppyTorsoEnv(gym.Env):
         self.__current_step += 1
         done = self.check_if_done(state)
 
-        return state, float(reward), done, truncated, {}
+        return state, reward, done, truncated, {}
 
     def get_state(self):
         # Retrieve both joint angles and Cartesian coordinates
