@@ -8,7 +8,6 @@ from src.utils.movement_parser import *
 
 
 class PoppyTorsoEnv(gym.Env):
-
     def __init__(self, targets):
         super().__init__()
         self.poppy_channel = PoppyChannel()
@@ -16,7 +15,9 @@ class PoppyTorsoEnv(gym.Env):
 
         # Targets
         self.__current_step = 0
-        self.__target_positions = targets.numpy() if isinstance(targets, torch.Tensor) else targets
+        self.__target_positions = (
+            targets.numpy() if isinstance(targets, torch.Tensor) else targets
+        )
 
         # Motors
         self.left_motor_names = self.poppy_channel.left_motors
@@ -26,16 +27,18 @@ class PoppyTorsoEnv(gym.Env):
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
 
         # Assuming the robot provides joint positions and Cartesian positions for the end effectors
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32)
+        self.observation_space = spaces.Box(
+            low=-1, high=1, shape=(6,), dtype=np.float32
+        )
 
     def step(self, action):
         truncated = False
-        scaled_action_left = np.interp(action[0], [-1, 1], [-np.deg2rad(180), np.deg2rad(180)])
-        scaled_action_right = np.interp(action[1], [-1, 1], [-np.deg2rad(180), np.deg2rad(180)])
+        scaled_action_left = np.interp(action[0], [0, 1], [0, np.deg2rad(180)])
+        scaled_action_right = np.interp(action[1], [-1, 0], [-np.deg2rad(180), 0])
 
         action_dict = {
             self.left_motor_names[0]: [scaled_action_left, 0.0],
-            self.right_motor_names[0]: [scaled_action_right, 0.0]
+            self.right_motor_names[0]: [scaled_action_right, 0.0],
         }
 
         # Set Poppy position
@@ -57,7 +60,9 @@ class PoppyTorsoEnv(gym.Env):
         _, l_end_effector_positions = self.poppy_channel.get_poppy_positions("left")
         _, r_end_effector_positions = self.poppy_channel.get_poppy_positions("right")
 
-        return np.concatenate([l_end_effector_positions, r_end_effector_positions]).astype(np.float32)
+        return np.concatenate(
+            [l_end_effector_positions, r_end_effector_positions]
+        ).astype(np.float32)
 
     def calculate_reward(self, state):
         left_effector_pos = state[:3]
@@ -68,8 +73,12 @@ class PoppyTorsoEnv(gym.Env):
         right_effector_pos = np.array(right_effector_pos).flatten()
 
         # Simple reward
-        distance_left = np.linalg.norm(left_effector_pos - self.__target_positions[self.__current_step, 0])
-        distance_right = np.linalg.norm(right_effector_pos - self.__target_positions[self.__current_step, 1])
+        distance_left = np.linalg.norm(
+            left_effector_pos - self.__target_positions[self.__current_step, 0]
+        )
+        distance_right = np.linalg.norm(
+            right_effector_pos - self.__target_positions[self.__current_step, 1]
+        )
 
         return -(distance_left + distance_right)
 
@@ -87,14 +96,15 @@ class PoppyTorsoEnv(gym.Env):
 
     def test(self):
         import time
+
         self.poppy_channel.poppy_reset()
         timestamps = np.linspace(0.02, 3, 10)
-        a = {'l_shoulder_x': [20, 0.0], 'r_shoulder_x': [-20, 0.0]}
-        b = {'l_shoulder_x': [40, 0.0], 'r_shoulder_x': [-40, 0.0]}
-        c = {'l_shoulder_x': [60, 0.0], 'r_shoulder_x': [-60, 0.0]}
-        d = {'l_shoulder_x': [90, 0.0], 'r_shoulder_x': [-90, 0.0]}
-        e = {'l_shoulder_x': [110, 0.0], 'r_shoulder_x': [-110, 0.0]}
-        f = {'l_shoulder_x': [130, 0.0], 'r_shoulder_x': [-130, 0.0]}
+        a = {"l_shoulder_x": [20, 0.0], "r_shoulder_x": [-20, 0.0]}
+        b = {"l_shoulder_x": [40, 0.0], "r_shoulder_x": [-40, 0.0]}
+        c = {"l_shoulder_x": [60, 0.0], "r_shoulder_x": [-60, 0.0]}
+        d = {"l_shoulder_x": [90, 0.0], "r_shoulder_x": [-90, 0.0]}
+        e = {"l_shoulder_x": [110, 0.0], "r_shoulder_x": [-110, 0.0]}
+        f = {"l_shoulder_x": [130, 0.0], "r_shoulder_x": [-130, 0.0]}
         self.poppy_channel.set_poppy_position(a, 0.02)
         self.poppy_channel.poppy_move()
         time.sleep(2)
@@ -118,7 +128,9 @@ class PoppyTorsoEnv(gym.Env):
 
         print(f"LEFT: {self.poppy_channel.get_poppy_positions('left')}")
         print(f"RIGHT: {self.poppy_channel.get_poppy_positions('left')}")
-        self.poppy_channel.set_poppy_position({'l_shoulder_x': [0, 0.0], 'r_shoulder_x': [0, 0.0]}, timestamps[0])
+        self.poppy_channel.set_poppy_position(
+            {"l_shoulder_x": [0, 0.0], "r_shoulder_x": [0, 0.0]}, timestamps[0]
+        )
         self.poppy_channel.poppy_move()
 
 
