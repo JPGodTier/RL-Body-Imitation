@@ -9,6 +9,7 @@ from src.Poppy.PoppyTorsoEnv import PoppyTorsoEnv
 from stable_baselines3.common.evaluation import evaluate_policy
 from src.utils.movement_parser import *
 
+
 class RewardLoggerCallback(BaseCallback):
     def __init__(self, check_freq, verbose=1):
         super(RewardLoggerCallback, self).__init__(verbose)

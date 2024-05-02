@@ -22,21 +22,21 @@ class PoppyTorsoEnv(gym.Env):
         self.left_motor_names = self.poppy_channel.left_motors
         self.right_motor_names = self.poppy_channel.right_motors
 
-        # Assuming joint movement ranges
-        joint_limits = np.deg2rad(180)
-        self.action_space = spaces.Box(low=-joint_limits, high=joint_limits, shape=(2,), dtype=np.float32)
+        # Normalizing joint movement ranges
+        self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
 
         # Assuming the robot provides joint positions and Cartesian positions for the end effectors
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32)
 
     def step(self, action):
-        # action is structured as [left_arm_actions, right_arm_actions]
-        left_actions = action[:len(self.left_motor_names)]
-        right_actions = action[len(self.left_motor_names):]
+        truncated = False
+        scaled_action_left = np.interp(action[0], [-1, 1], [-np.deg2rad(180), np.deg2rad(180)])
+        scaled_action_right = np.interp(action[1], [-1, 1], [-np.deg2rad(180), np.deg2rad(180)])
 
-        # Create dict with motor name and for each position & velocity
-        action_dict = {**dict(zip(self.left_motor_names, left_actions)),
-                       **dict(zip(self.right_motor_names, right_actions))}
+        action_dict = {
+            self.left_motor_names[0]: [scaled_action_left, 0.0],
+            self.right_motor_names[0]: [scaled_action_right, 0.0]
+        }
 
         # Set Poppy position
         self.poppy_channel.set_poppy_position(action_dict, 0)
@@ -44,22 +44,20 @@ class PoppyTorsoEnv(gym.Env):
 
         # Retrieve the new state from the robot
         state = self.get_state()
-        reward = self.calculate_reward(action, state)
+        reward = self.calculate_reward(state)
+
+        # Increment step and check for end of sim
+        self.__current_step += 1
         done = self.check_if_done(state)
 
-        self.__current_step += 1
-        return state, reward, done, {}
+        return state, float(reward), done, truncated, {}
 
     def get_state(self):
         # Retrieve both joint angles and Cartesian coordinates
         _, l_end_effector_positions = self.poppy_channel.get_poppy_positions("left")
         _, r_end_effector_positions = self.poppy_channel.get_poppy_positions("right")
 
-        # Debug
-        print("Left positions shape:", l_end_effector_positions.shape)
-        print("Right positions shape:", r_end_effector_positions.shape)
-
-        return np.concatenate([l_end_effector_positions, r_end_effector_positions])
+        return np.concatenate([l_end_effector_positions, r_end_effector_positions]).astype(np.float32)
 
     def calculate_reward(self, state):
         left_effector_pos = state[:3]
@@ -81,6 +79,8 @@ class PoppyTorsoEnv(gym.Env):
     def reset(self, **kwargs):
         self.__current_step = 0
         self.poppy_channel.poppy_reset()
+        initial_state = self.get_state()
+        return initial_state, {}
 
     def close(self):
         self.poppy_channel.disconnect()
