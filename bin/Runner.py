@@ -17,7 +17,7 @@ from src.utils.movement_parser import *
 def main():
 
     # Create paths to save tests
-    testname = 'Test-180'
+    testname = 'Test-1'
     testdir = os.path.join(os.getcwd(), 'Tests', datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + testname) # Path for saving training data
     logger_path = os.path.join(testdir, 'Logger') # Path for logger output
     trained_models_path = os.path.join(testdir, 'TrainedModels') # Path for trained models
@@ -45,7 +45,7 @@ def main():
     model.set_logger(new_logger)
 
     # Train and save the model
-    model.learn(total_timesteps=200000)
+    model.learn(total_timesteps=20000)
     model.save(os.path.join(trained_models_path, "poppy_torso_ppo"))
 
     # Reload it

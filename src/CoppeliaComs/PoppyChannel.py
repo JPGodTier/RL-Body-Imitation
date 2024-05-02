@@ -11,22 +11,23 @@ class PoppyChannel:
         self.__moves = None
         self.__fps = 10
         self.__default_pose = {
-            "head_y": 0.0,
-            "head_z": 0.0,
-            "abs_z": 0.0,
-            "bust_x": 0.0,
-            "bust_y": 0.0,
-            "r_elbow_y": 90.0,
-            "r_arm_z": 0.0,
-            "r_shoulder_x": 0.0,
-            "r_shoulder_y": 0.0,
-            "l_elbow_y": 90.0,
-            "l_arm_z": 0.0,
-            "l_shoulder_x": 0.0,
-            "l_shoulder_y": 0.0,
+            "head_y": [0.0, 0.0],
+            "head_z": [0.0, 0.0],
+            "abs_z": [0.0, 0.0],
+            "bust_x": [0.0, 0.0],
+            "bust_y": [0.0, 0.0],
+            "r_elbow_y": [90.0, 0.0],
+            "r_arm_z": [0.0, 0.0],
+            "r_shoulder_x": [0.0, 0.0],
+            "r_shoulder_y": [0.0, 0.0],
+            "l_elbow_y": [90.0, 0.0],
+            "l_arm_z": [0.0, 0.0],
+            "l_shoulder_x": [0.0, 0.0],
+            "l_shoulder_y": [0.0, 0.0],
         }
         self.left_motors = ["l_shoulder_x"]
         self.right_motors = ["r_shoulder_x"]
+        self.poppy_reset()
 
     def connect(self):
         self.disconnect()
@@ -59,5 +60,5 @@ class PoppyChannel:
 
     def poppy_reset(self):
         if self.__poppy is not None:
-            for m in self.__poppy.motors:
-                m.goto_position(self.__default_pose[m.name], 5)
+            self.set_poppy_position(self.__default_pose, 0)
+            self.poppy_move()

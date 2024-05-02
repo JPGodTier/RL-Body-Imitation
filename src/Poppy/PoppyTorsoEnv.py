@@ -24,7 +24,9 @@ class PoppyTorsoEnv(gym.Env):
         self.right_motor_names = self.poppy_channel.right_motors
 
         # Normalizing joint movement ranges
-        self.action_space = spaces.Box(low=-10, high=10, shape=(2,), dtype=np.float32)
+        action_space_low = np.array([0, -1], dtype=np.float32)
+        action_space_high = np.array([1, 0], dtype=np.float32)
+        self.action_space = spaces.Box(low=action_space_low, high=action_space_high, shape=(2,), dtype=np.float32)
 
         # Assuming the robot provides joint positions and Cartesian positions for the end effectors
         self.observation_space = spaces.Box(
@@ -33,8 +35,8 @@ class PoppyTorsoEnv(gym.Env):
 
     def step(self, action):
         truncated = False
-        scaled_action_left = np.interp(action[0], [0, 1], [0, np.deg2rad(180)])
-        scaled_action_right = np.interp(action[1], [-1, 0], [-np.deg2rad(180), 0])
+        scaled_action_left = np.interp(action[0], [0, 1], [0, 180])
+        scaled_action_right = np.interp(action[1], [-1, 0], [-180, 0])
 
         action_dict = {
             self.left_motor_names[0]: [scaled_action_left, 0.0],
@@ -47,13 +49,14 @@ class PoppyTorsoEnv(gym.Env):
 
         # Retrieve the new state from the robot
         state = self.get_state()
+        print(self.__current_step, "----", state, "----", action, action_dict)
         reward = self.calculate_reward(state)
 
         # Increment step and check for end of sim
         self.__current_step += 1
         done = self.check_if_done(state)
 
-        return state, reward, done, truncated, {}
+        return state, float(reward), done, truncated, {}
 
     def get_state(self):
         # Retrieve both joint angles and Cartesian coordinates
@@ -79,7 +82,6 @@ class PoppyTorsoEnv(gym.Env):
         distance_right = np.linalg.norm(
             right_effector_pos - self.__target_positions[self.__current_step, 1]
         )
-
         return -(distance_left + distance_right)
 
     def check_if_done(self, state):
