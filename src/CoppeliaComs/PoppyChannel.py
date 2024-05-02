@@ -10,26 +10,29 @@ class PoppyChannel:
         self.__poppy = None
         self.__moves = None
         self.__fps = 10
-        self.__default_pose = {'head_y': 0.0,
-                               'head_z': 0.0,
-                               'abs_z': 0.0,
-                               'bust_x': 0.0,
-                               'bust_y': 0.0,
-                               'r_elbow_y': 90.0,
-                               'r_arm_z': 0.0,
-                               'r_shoulder_x': 0.0,
-                               'r_shoulder_y': 0.0,
-                               'l_elbow_y': 90.0,
-                               'l_arm_z': 0.0,
-                               'l_shoulder_x': 0.0,
-                               'l_shoulder_y': 0.0,
-                               }
-        self.left_motors = ['l_shoulder_x']
-        self.right_motors = ['r_shoulder_x']
+        self.__default_pose = {
+            "head_y": 0.0,
+            "head_z": 0.0,
+            "abs_z": 0.0,
+            "bust_x": 0.0,
+            "bust_y": 0.0,
+            "r_elbow_y": 90.0,
+            "r_arm_z": 0.0,
+            "r_shoulder_x": 0.0,
+            "r_shoulder_y": 0.0,
+            "l_elbow_y": 90.0,
+            "l_arm_z": 0.0,
+            "l_shoulder_x": 0.0,
+            "l_shoulder_y": 0.0,
+        }
+        self.left_motors = ["l_shoulder_x"]
+        self.right_motors = ["r_shoulder_x"]
 
     def connect(self):
         self.disconnect()
-        self.__poppy = PoppyTorso(simulator='vrep')
+        self.__poppy = PoppyTorso(
+            simulator="vrep", base_path="./src/scene", scene="poppy_torso.ttt"
+        )
         self.__moves = Move(freq=self.__fps)
 
     def disconnect(self):
