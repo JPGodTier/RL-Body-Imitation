@@ -4,10 +4,20 @@ import numpy as np
 import torch
 
 from src.CoppeliaComs.PoppyChannel import PoppyChannel
-from src.utils.movement_parser import *
 
 
 class PoppyTorsoEnv(gym.Env):
+    """A custom environment for controlling a Poppy Torso robot in a simulated environment using the Gym library.
+
+    Attributes:
+        __current_step (int): Internal counter for the current step in the environment.
+        __target_positions (np.ndarray): Target positions for the robot's end effectors.
+        poppy_channel (PoppyChannel): The channel through which the Poppy Torso robot is controlled.
+        left_motor_names (list): List of names of the left motors.
+        right_motor_names (list): List of names of the right motors.
+        action_space (spaces.Box): The Space object corresponding to valid actions.
+        observation_space (spaces.Box): The Space object corresponding to valid observations.
+    """
     def __init__(self, targets):
         super().__init__()
         self.poppy_channel = PoppyChannel()
@@ -23,51 +33,71 @@ class PoppyTorsoEnv(gym.Env):
         self.left_motor_names = self.poppy_channel.left_motors
         self.right_motor_names = self.poppy_channel.right_motors
 
-        # Normalizing joint movement ranges
-        action_space_low = np.array([0, -1], dtype=np.float32)
-        action_space_high = np.array([1, 0], dtype=np.float32)
-        self.action_space = spaces.Box(low=action_space_low, high=action_space_high, shape=(2,), dtype=np.float32)
+        # Define the action space for motor commands
+        self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
 
-        # Assuming the robot provides joint positions and Cartesian positions for the end effectors
+        # Define the observation space that the agent can expect to receive
         self.observation_space = spaces.Box(
             low=-1, high=1, shape=(6,), dtype=np.float32
         )
 
     def step(self, action):
-        truncated = False
-        scaled_action_left = np.interp(action[0], [0, 1], [0, 180])
-        scaled_action_right = np.interp(action[1], [-1, 0], [-180, 0])
+        """Executes one time step within the environment.
+
+        Args:
+            action (array-like): The action to be taken, array of motor positions.
+
+        Returns:
+            tuple: A tuple containing the new state, reward, done flag, truncated flag, and an info dict.
+        """
+        # Translate actions into actual motor commands, considering the range of the motors
+        scaled_action_left = np.interp(action[0], [-1, 1], [0, 180])
+        scaled_action_right = np.interp(action[1], [-1, 1], [-180, 0])
 
         action_dict = {
             self.left_motor_names[0]: [scaled_action_left, 0.0],
             self.right_motor_names[0]: [scaled_action_right, 0.0],
         }
 
-        # Set Poppy position
+        # Apply and Initiate poppy mvt
         self.poppy_channel.set_poppy_position(action_dict, 0)
         self.poppy_channel.poppy_move()
 
-        # Retrieve the new state from the robot
+        # Retrieve new state from the robot
         state = self.get_state()
-        print(self.__current_step, "----", state, "----", action, action_dict)
         reward = self.calculate_reward(state)
 
         # Increment step and check for end of sim
         self.__current_step += 1
-        done = self.check_if_done(state)
+        done = self.check_if_done()
+        truncated = False
 
         return state, float(reward), done, truncated, {}
 
     def get_state(self):
+        """Retrieves the current state of the robot's end effectors.
+
+        Args:
+            None
+
+        Returns:
+            np.ndarray: The current state array combining both joint angles and Cartesian coordinates.
+        """
         # Retrieve both joint angles and Cartesian coordinates
         _, l_end_effector_positions = self.poppy_channel.get_poppy_positions("left")
         _, r_end_effector_positions = self.poppy_channel.get_poppy_positions("right")
 
-        return np.concatenate(
-            [l_end_effector_positions, r_end_effector_positions]
-        ).astype(np.float32)
+        return np.concatenate([l_end_effector_positions, r_end_effector_positions]).astype(np.float32)
 
     def calculate_reward(self, state):
+        """Calculates the reward based on the current state.
+
+        Args:
+            state (np.ndarray): The current state from which to calculate the reward.
+
+        Returns:
+            float: The calculated reward value.
+        """
         left_effector_pos = state[:3]
         right_effector_pos = state[3:]
 
@@ -75,7 +105,7 @@ class PoppyTorsoEnv(gym.Env):
         left_effector_pos = np.array(left_effector_pos).flatten()
         right_effector_pos = np.array(right_effector_pos).flatten()
 
-        # Simple reward
+        # Calculate distance from current position to target as a reward
         distance_left = np.linalg.norm(
             left_effector_pos - self.__target_positions[self.__current_step, 0]
         )
@@ -84,62 +114,38 @@ class PoppyTorsoEnv(gym.Env):
         )
         return -(distance_left + distance_right)
 
-    def check_if_done(self, state):
+    def check_if_done(self):
+        """Checks if the episode has completed.
+
+        Returns:
+            bool: True if the episode is complete, otherwise False.
+        """
         return self.__current_step == self.__target_positions.shape[0]
 
     def reset(self, **kwargs):
+        """Resets the environment to the initial state.
+
+        Args:
+            kwargs (dict): Additional arguments to be considered for resetting, not used currently.
+
+        Returns:
+            tuple: The initial state and an info dict.
+        """
+        # Reset the ste var
         self.__current_step = 0
+
+        # Reset the robot to its default state
         self.poppy_channel.poppy_reset()
         initial_state = self.get_state()
         return initial_state, {}
 
     def close(self):
+        """Closes the environment, disconnecting all external connections.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.poppy_channel.disconnect()
-
-    def test(self):
-        import time
-
-        self.poppy_channel.poppy_reset()
-        timestamps = np.linspace(0.02, 3, 10)
-        a = {"l_shoulder_x": [20, 0.0], "r_shoulder_x": [-20, 0.0]}
-        b = {"l_shoulder_x": [40, 0.0], "r_shoulder_x": [-40, 0.0]}
-        c = {"l_shoulder_x": [60, 0.0], "r_shoulder_x": [-60, 0.0]}
-        d = {"l_shoulder_x": [90, 0.0], "r_shoulder_x": [-90, 0.0]}
-        e = {"l_shoulder_x": [110, 0.0], "r_shoulder_x": [-110, 0.0]}
-        f = {"l_shoulder_x": [130, 0.0], "r_shoulder_x": [-130, 0.0]}
-        self.poppy_channel.set_poppy_position(a, 0.02)
-        self.poppy_channel.poppy_move()
-        time.sleep(2)
-        self.poppy_channel.set_poppy_position(b, timestamps[0])
-        self.poppy_channel.poppy_move()
-        time.sleep(2)
-        self.poppy_channel.set_poppy_position(c, timestamps[0])
-        self.poppy_channel.poppy_move()
-        time.sleep(2)
-        self.poppy_channel.set_poppy_position(d, timestamps[0])
-        self.poppy_channel.poppy_move()
-        time.sleep(2)
-        self.poppy_channel.set_poppy_position(d, timestamps[0])
-        self.poppy_channel.poppy_move()
-        time.sleep(2)
-        self.poppy_channel.set_poppy_position(e, timestamps[0])
-        self.poppy_channel.poppy_move()
-        time.sleep(2)
-        self.poppy_channel.set_poppy_position(f, timestamps[0])
-        self.poppy_channel.poppy_move()
-
-        print(f"LEFT: {self.poppy_channel.get_poppy_positions('left')}")
-        print(f"RIGHT: {self.poppy_channel.get_poppy_positions('left')}")
-        self.poppy_channel.set_poppy_position(
-            {"l_shoulder_x": [0, 0.0], "r_shoulder_x": [0, 0.0]}, timestamps[0]
-        )
-        self.poppy_channel.poppy_move()
-
-
-# skeletons = torch.from_numpy(np.load("skeletons_sao.npy"))
-# topology = [0, 0, 1, 2, 0, 4, 5, 0, 7, 8, 9, 8, 11, 12, 8, 14, 15]
-#
-# targets, _ = targets_from_skeleton(skeletons, np.array(topology), 3)
-# To create an instance of the environment:
-# env = PoppyTorsoEnv([0])
-# env.test()

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="RL-Body-Imitation",
-    version="0.0.1",
+    version="1.0.0",
     packages=find_packages(),
     install_requires=[
         "cloudpickle == 3.0.0",
