@@ -24,7 +24,7 @@ To train properly the model, we would need several 100k of steps, but we are her
 
 Nevertheless, we have launched the model training during 24 hours. Please see below the results of the training:
 <div align="center">
-    <img src="https://github.com/JPGodTier/RL-Body-Imitation/blob/main/Training_ep_rew_mean.png" width="50%" height="auto">
+    <img src="https://github.com/JPGodTier/RL-Body-Imitation/blob/main/Results/Training_ep_rew_mean.png" width="50%" height="auto">
     <p>Evolution of the mean reward per episode during training</p>
 </div>
 
