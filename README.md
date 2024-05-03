@@ -65,3 +65,34 @@ python3 bin/Runner.py
 ## Version History
 
 * **1.0.0** - Initial release
+
+## Description of the project
+
+### Goal
+
+The goal of this project is to have a Poppy Torso robot imitating the movements made on the provided video.
+
+### Code structure and main files
+
+To achieve this, we have trained a PPO model using the stablebaselines3 library.
+You can see in the code of the repository the different scripts. Below is a short description of the main ones:
+* [Runner.py](./bin/Runner.py) is the script that is executed to learn and test our model.
+* [PoppyTorsoEnv.py](./src/Poppy/PoppyTorsoEnv.py) is the gym environment that we created for the project, including the step and the calculate_reward functions (among others).
+* [PoppyChannel.py](./src/CoppeliaComs/PoppyChannel.py) manages the interface with coppeliaSim
+* The [Tests](./Tests) folder would include the Tensorboard logs and the saved model
+
+### Results
+
+After launching the training of the RL PPO model, we see the robot moving while it is learning. (see [Training_recording.mov](./Training_recording.mov))
+Unfortunately, the API with copeliaSim seems very slow, and it is doing approximately 1 step per second during training. We have tried to adapt directly the copeliaSim API to increase the speed of each step simulation, but it unfortunately did not work.
+To train properly the model, we would need several 100k of steps, but we are here very much limited.
+
+Nevertheless, we have launched the model training during 24 hours. Please see below the results of the training:
+<div align="center">
+    <img src="https://github.com/JPGodTier/RL-Body-Imitation/tree/main/Training_ep_rew_mean.png" width="50%" height="auto">
+    <p>Evolution of the mean reward per episode during training</p>
+</div>
+
+We can see the reward properly increasing along the training, which show that the robot learns increasingly better to imitate the video.
+
+We also had prepared a script to plot the movements of the robot imitating the video, but we were not able to run it (as we were not able to fully train our PPO model, as the copeliaSim API is too slow).
