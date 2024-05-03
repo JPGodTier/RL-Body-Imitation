@@ -36,8 +36,6 @@ def main():
     env = DummyVecEnv([lambda: env])
 
     # Initialize the PPO model
-    #policy_kwargs = dict(activation_fn=torch.nn.Tanh, net_arch=[dict(pi=[4,4], vf=[4,4])])
-    #model = PPO('MlpPolicy', env, learning_rate=0.001, policy_kwargs=policy_kwargs, verbose=1)
     model = PPO('MlpPolicy', env, learning_rate=0.001, verbose=1)
     
     # Set up logger
