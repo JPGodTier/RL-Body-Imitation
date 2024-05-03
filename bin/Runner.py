@@ -48,21 +48,9 @@ def main():
     model.learn(total_timesteps=20000)
     model.save(os.path.join(trained_models_path, "poppy_torso_ppo"))
 
-    # Reload it
-    #model = PPO.load(os.path.join(trained_models_path, "poppy_torso_ppo"), env=env)
-
     # Evaluate the trained model
-    #mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=10)
-    #print(f"Mean reward: {mean_reward} +/- {std_reward}")
-
-    # num_steps=10
-    # obs = env.reset()
-    # for i in range(num_steps):
-    #     action, _ = model.predict(obs)
-    #     obs, rewards, dones, info = env.step(action)
-    #     #env.render()
-    #     if dones:
-    #         obs = env.reset()
+    mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=10)
+    print(f"Mean reward: {mean_reward} +/- {std_reward}")
 
     env.close()
 
