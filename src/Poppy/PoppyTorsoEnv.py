@@ -18,6 +18,7 @@ class PoppyTorsoEnv(gym.Env):
         action_space (spaces.Box): The Space object corresponding to valid actions.
         observation_space (spaces.Box): The Space object corresponding to valid observations.
     """
+
     def __init__(self, targets):
         super().__init__()
         self.poppy_channel = PoppyChannel()
@@ -34,7 +35,12 @@ class PoppyTorsoEnv(gym.Env):
         self.right_motor_names = self.poppy_channel.right_motors
 
         # Define the action space for motor commands
-        self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
+        self.action_space = spaces.Box(
+            low=np.array([0, -1], dtype=np.float32),
+            high=np.array([1, 0], dtype=np.float32),
+            shape=(2,),
+            dtype=np.float32,
+        )
 
         # Define the observation space that the agent can expect to receive
         self.observation_space = spaces.Box(
@@ -87,7 +93,9 @@ class PoppyTorsoEnv(gym.Env):
         _, l_end_effector_positions = self.poppy_channel.get_poppy_positions("left")
         _, r_end_effector_positions = self.poppy_channel.get_poppy_positions("right")
 
-        return np.concatenate([l_end_effector_positions, r_end_effector_positions]).astype(np.float32)
+        return np.concatenate(
+            [l_end_effector_positions, r_end_effector_positions]
+        ).astype(np.float32)
 
     def calculate_reward(self, state):
         """Calculates the reward based on the current state.

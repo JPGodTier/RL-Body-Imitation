@@ -12,6 +12,7 @@ The goal of this project is to have a Poppy Torso robot imitating the movements 
 To achieve this, we have trained a PPO model using the stablebaselines3 library.
 You can see in the code of the repository the different scripts. Below is a short description of the main ones:
 * [Runner.py](./bin/Runner.py) is the script that is executed to learn and test our model.
+* [PPO_inference.py](./bin/PPO_inference.py) is the script that is executed to infer our model and plot the positions (x,y) of both hands in the video versus the ground truths.
 * [PoppyTorsoEnv.py](./src/Poppy/PoppyTorsoEnv.py) is the gym environment that we created for the project, including the step and the calculate_reward functions (among others).
 * [PoppyChannel.py](./src/CoppeliaComs/PoppyChannel.py) manages the interface with coppeliaSim
 * The [Tests](./Tests) folder would include the Tensorboard logs and the saved model
