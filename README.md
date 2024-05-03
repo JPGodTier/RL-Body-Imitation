@@ -28,6 +28,10 @@ Nevertheless, we have launched the model training during 24 hours. Please see be
     <p>Evolution of the mean reward per episode during training</p>
 </div>
 
+We can see the reward properly increasing along the training, which show that the robot learns increasingly better to imitate the video.
+
+We also had prepared a script to plot the movements of the robot imitating the video, but we were not able to run it (as we were not able to fully train our PPO model, as the copeliaSim API is too slow).
+
 ## Getting Started
 
 ### Dependencies
@@ -92,9 +96,3 @@ python3 bin/Runner.py
 ## Version History
 
 * **1.0.0** - Initial release
-
-
-
-We can see the reward properly increasing along the training, which show that the robot learns increasingly better to imitate the video.
-
-We also had prepared a script to plot the movements of the robot imitating the video, but we were not able to run it (as we were not able to fully train our PPO model, as the copeliaSim API is too slow).
